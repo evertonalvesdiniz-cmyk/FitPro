@@ -1,29 +1,20 @@
 /* ============================================================
    APP.JS — Inicialização principal do FitPro
-   Ponto de entrada: instancia todos os módulos em ordem
 ============================================================ */
 const App = {
 
   init() {
-    // 1. Seed de dados mockados (só na primeira vez)
-    DB.seed();
+    try { DB.seed(); } catch(e) { console.error('[App] Erro no seed:', e); }
+    try { UI.init(); } catch(e) { console.error('[App] Erro no UI.init:', e); }
+    try { Router.init(); } catch(e) { console.error('[App] Erro no Router.init:', e); }
+    try { App.checkOverdue(); } catch(e) { console.error('[App] Erro no checkOverdue:', e); }
 
-    // 2. Inicializa UI (tema, avatar, sidebar)
-    UI.init();
-
-    // 3. Inicializa roteador (nav-items)
-    Router.init();
-
-    // 4. Navega para o dashboard
-    Router.navigate('dashboard');
-
-    // 5. Atualiza inadimplência automaticamente
-    App.checkOverdue();
-
-    console.log('✅ FitPro iniciado com sucesso!');
+    // Navega para dashboard com pequeno delay para garantir que o DOM está pronto
+    setTimeout(() => {
+      try { Router.navigate('dashboard'); } catch(e) { console.error('[App] Erro ao navegar:', e); }
+    }, 50);
   },
 
-  /* Marca como "atrasado" pagamentos com vencimento passado e status pendente */
   checkOverdue() {
     const today = Utils.today();
     const pagamentos = DB.get('pagamentos');
@@ -38,7 +29,10 @@ const App = {
   }
 };
 
-/* ── Bootstrap na carga do DOM ── */
+/* ── Bootstrap ── */
 document.addEventListener('DOMContentLoaded', () => {
-  Auth.init();
+  // Login desativado para testes — vai direto para o sistema
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appMain').classList.remove('hidden');
+  App.init();
 });
