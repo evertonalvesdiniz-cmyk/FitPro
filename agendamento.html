@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Agendar Aula — FitPro</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+/* ══════════════════════════════════
+   RESET & VARS
+══════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#10b981;--accent2:#6366f1;
+  --bg:#0d0f14;--card:#13161e;--card2:#191d28;
+  --border:rgba(255,255,255,.07);
+  --text:#e8eaf0;--muted:#7a8099;--dim:#4a5168;
+  --radius:16px;--tr:.22s cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth;font-size:15px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+input,select,textarea{font-family:inherit;background:var(--card2);border:1.5px solid var(--border);color:var(--text);border-radius:10px;padding:.6rem .9rem;width:100%;font-size:.875rem;transition:border-color var(--tr),box-shadow var(--tr)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(16,185,129,.15)}
+select option{background:var(--card)}
+button{cursor:pointer;border:none;font-family:inherit}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* ══════════════════════════════════
+   HERO / HEADER
+══════════════════════════════════ */
+.hero{
+  background:linear-gradient(135deg,#0a0c12 0%,#0f1117 60%,#0d1a14 100%);
+  border-bottom:1px solid var(--border);
+  padding:2.5rem 1.5rem 3.5rem;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 80% at 50% 120%,rgba(16,185,129,.15),transparent);
+  pointer-events:none;
+}
+.hero-logo{
+  display:inline-flex;align-items:center;gap:.75rem;
+  margin-bottom:1.75rem;
+}
+.hero-logo .icon{
+  width:48px;height:48px;background:linear-gradient(135deg,#10b981,#059669);
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;color:#fff;box-shadow:0 8px 24px rgba(16,185,129,.35);
+}
+.hero-logo span{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;
+  background:linear-gradient(135deg,#10b981,#34d399);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-trainer{
+  width:80px;height:80px;border-radius:22px;
+  margin:0 auto .9rem;border:3px solid rgba(16,185,129,.4);
+  object-fit:cover;display:block;
+}
+.hero h1{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:.4rem}
+.hero p{color:var(--muted);font-size:.9rem}
+.trainer-badges{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.85rem;flex-wrap:wrap}
+.trainer-badge{
+  background:rgba(16,185,129,.12);color:#10b981;
+  border:1px solid rgba(16,185,129,.2);
+  border-radius:99px;padding:.25rem .75rem;font-size:.75rem;font-weight:600;
+  display:inline-flex;align-items:center;gap:.3rem;
+}
+
+/* ══════════════════════════════════
+   STEPS INDICATOR
+══════════════════════════════════ */
+.steps-bar{
+  display:flex;align-items:center;justify-content:center;
+  gap:0;padding:1.5rem 1rem;
+  background:var(--card);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+}
+.step-item{display:flex;align-items:center;gap:0}
+.step-dot{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--card2);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:700;color:var(--muted);
+  transition:all var(--tr);flex-shrink:0;
+}
+.step-dot.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.4)}
+.step-dot.done{background:rgba(16,185,129,.15);border-color:var(--accent);color:var(--accent)}
+.step-dot.done i{font-size:.85rem}
+.step-line{width:40px;height:2px;background:var(--border);transition:background var(--tr)}
+.step-line.done{background:var(--accent)}
+.step-label{font-size:.7rem;color:var(--muted);text-align:center;margin-top:.3rem;white-space:nowrap}
+.step-col{display:flex;flex-direction:column;align-items:center}
+
+/* ══════════════════════════════════
+   MAIN CONTAINER
+══════════════════════════════════ */
+.container{max-width:680px;margin:0 auto;padding:2rem 1rem 5rem}
+
+/* ══════════════════════════════════
+   SECTION CARDS
+══════════════════════════════════ */
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section-title{
+  font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;
+  margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem;
+}
+.section-title i{color:var(--accent);font-size:1rem}
+.section-sub{color:var(--muted);font-size:.85rem;margin-bottom:1.5rem}
+
+/* PLANOS */
+.planos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.85rem}
+.plano-card{
+  background:var(--card);border:2px solid var(--border);
+  border-radius:var(--radius);padding:1.35rem;cursor:pointer;
+  transition:all var(--tr);position:relative;overflow:hidden;
+}
+.plano-card::before{
+  content:'';position:absolute;bottom:-40px;right:-40px;
+  width:100px;height:100px;border-radius:50%;
+  background:var(--accent);opacity:.06;transition:opacity var(--tr);
+}
+.plano-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 28px rgba(16,185,129,.15)}
+.plano-card.selected{border-color:var(--accent);background:rgba(16,185,129,.07)}
+.plano-card.selected::before{opacity:.12}
+.plano-check{
+  position:absolute;top:.85rem;right:.85rem;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--accent);display:none;
+  align-items:center;justify-content:center;
+  color:#fff;font-size:.7rem;
+}
+.plano-card.selected .plano-check{display:flex}
+.plano-freq-big{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);line-height:1}
+.plano-nome{font-weight:700;font-size:.95rem;margin:.3rem 0}
+.plano-desc-small{font-size:.78rem;color:var(--muted);margin-bottom:.75rem;min-height:2.5em}
+.plano-preco{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800}
+.plano-preco small{font-size:.7rem;font-weight:400;color:var(--muted)}
+.plano-tags{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.65rem}
+.plano-tag{background:rgba(16,185,129,.1);color:#10b981;border-radius:99px;padding:.15rem .6rem;font-size:.7rem;font-weight:600}
+
+/* PAGAMENTO */
+.pgto-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.75rem}
+.pgto-card{
+  background:var(--card);border:2px solid var(--border);
+  border-radius:var(--radius);padding:1.1rem;cursor:pointer;
+  transition:all var(--tr);display:flex;flex-direction:column;
+  align-items:center;gap:.5rem;text-align:center;
+}
+.pgto-card:hover{border-color:var(--accent2);transform:translateY(-2px)}
+.pgto-card.selected{border-color:var(--accent2);background:rgba(99,102,241,.08)}
+.pgto-card .pgto-icon{font-size:1.6rem}
+.pgto-card .pgto-nome{font-weight:700;font-size:.875rem}
+.pgto-card .pgto-desc{font-size:.75rem;color:var(--muted)}
+
+/* DADOS PESSOAIS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.form-grid .span2{grid-column:span 2}
+.form-group{display:flex;flex-direction:column;gap:.35rem}
+.form-group label{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+
+/* CALENDÁRIO CUSTOM */
+.cal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;
+}
+.cal-header h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;text-transform:capitalize}
+.cal-nav{background:none;color:var(--muted);font-size:1rem;padding:.35rem .6rem;border-radius:8px;border:1.5px solid var(--border);transition:all var(--tr)}
+.cal-nav:hover{border-color:var(--accent);color:var(--accent)}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px}
+.cal-weekday{text-align:center;font-size:.68rem;font-weight:700;color:var(--dim);padding:.3rem 0;text-transform:uppercase}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-day{
+  aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:.82rem;font-weight:500;color:var(--muted);
+  transition:all var(--tr);position:relative;
+  border:2px solid transparent;background:none;
+}
+.cal-day.empty{pointer-events:none}
+.cal-day.past{opacity:.3;pointer-events:none}
+.cal-day.busy{background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.2)}
+.cal-day.busy:hover{background:rgba(239,68,68,.15)}
+.cal-day.available{background:var(--card2);color:var(--text);cursor:pointer}
+.cal-day.available:hover{border-color:var(--accent);background:rgba(16,185,129,.1);color:var(--accent)}
+.cal-day.selected-day{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important;box-shadow:0 4px 14px rgba(16,185,129,.4)}
+.cal-day.today-marker{font-weight:800}
+.cal-day.today-marker::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-busy-dot{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:#ef4444}
+.cal-legend{display:flex;gap:1rem;margin-top:.85rem;flex-wrap:wrap}
+.cal-legend-item{display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:var(--muted)}
+.cal-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* HORÁRIOS */
+.horarios-grid{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+.hora-btn{
+  background:var(--card2);border:2px solid var(--border);
+  border-radius:9px;padding:.45rem .9rem;
+  font-size:.82rem;font-weight:600;color:var(--text);
+  cursor:pointer;transition:all var(--tr);
+}
+.hora-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hora-btn.occupied{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07);color:#ef4444;cursor:not-allowed;text-decoration:line-through;opacity:.6}
+.hora-btn.selected-hora{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.35)}
+
+/* RESUMO */
+.resumo-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.5rem;
+}
+.resumo-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.7rem 0;border-bottom:1px solid var(--border);font-size:.875rem;
+}
+.resumo-row:last-child{border-bottom:none}
+.resumo-label{color:var(--muted);display:flex;align-items:center;gap:.4rem}
+.resumo-val{font-weight:700;text-align:right}
+.resumo-total{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:.9rem 1.1rem;margin-top:1rem}
+.resumo-total .resumo-label{color:var(--accent)}
+.resumo-total .resumo-val{font-size:1.1rem;color:var(--accent)}
+
+/* BUTTONS NAV */
+.btn-row{display:flex;gap:.65rem;margin-top:1.5rem;flex-wrap:wrap}
+.btn-primary{
+  background:linear-gradient(135deg,#10b981,#059669);
+  color:#fff;border-radius:11px;padding:.72rem 1.4rem;
+  font-size:.9rem;font-weight:700;
+  display:inline-flex;align-items:center;gap:.5rem;
+  transition:all var(--tr);box-shadow:0 4px 16px rgba(16,185,129,.3);
+  flex:1;justify-content:center;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(16,185,129,.45)}
+.btn-primary:disabled{opacity:.5;pointer-events:none}
+.btn-secondary{
+  background:var(--card2);color:var(--muted);
+  border:1.5px solid var(--border);border-radius:11px;
+  padding:.72rem 1.1rem;font-size:.875rem;font-weight:600;
+  display:inline-flex;align-items:center;gap:.4rem;
+  transition:all var(--tr);
+}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+
+/* SUCESSO */
+.success-screen{
+  text-align:center;padding:3rem 1.5rem;
+  display:none;
+}
+.success-screen.show{display:block;animation:fadeIn .4s ease}
+.success-icon{
+  width:90px;height:90px;
+  background:linear-gradient(135deg,#10b981,#059669);
+  border-radius:50%;margin:0 auto 1.5rem;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.5rem;color:#fff;
+  box-shadow:0 12px 40px rgba(16,185,129,.4);
+  animation:scaleIn .5s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes scaleIn{from{transform:scale(0)}to{transform:scale(1)}}
+.success-screen h2{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;margin-bottom:.5rem}
+.success-screen p{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:1.5rem}
+.wa-confirm-box{
+  background:linear-gradient(145deg,#075E54,#128C7E);
+  border-radius:16px;padding:1.25rem 1.35rem;
+  color:#fff;font-size:.845rem;line-height:1.65;
+  text-align:left;margin:1.25rem 0;
+  position:relative;
+}
+.wa-confirm-box::before{content:'Mensagem enviada ao Personal';display:block;font-size:.7rem;opacity:.75;margin-bottom:.5rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.wa-confirm-box .wa-time{font-size:.7rem;opacity:.65;text-align:right;margin-top:.5rem}
+.confetti-row{font-size:2rem;margin-bottom:1rem;letter-spacing:.3rem}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:1.25rem;right:1.25rem;z-index:9999;display:flex;flex-direction:column;gap:.4rem;pointer-events:none}
+.toast{
+  background:var(--card);border:1px solid var(--border);border-radius:11px;
+  padding:.72rem 1.1rem;display:flex;align-items:center;gap:.6rem;
+  font-size:.845rem;box-shadow:0 8px 32px rgba(0,0,0,.5);
+  pointer-events:all;animation:toastIn .28s ease;max-width:300px;border-left:4px solid var(--accent);
+}
+.toast.error{border-left-color:#ef4444}
+.toast.warn{border-left-color:#f59e0b}
+.toast i.ok{color:#10b981}.toast i.err{color:#ef4444}.toast i.warn{color:#f59e0b}
+@keyframes toastIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(50px)}}
+
+/* MISC */
+.info-banner{
+  background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);
+  border-radius:11px;padding:.75rem 1rem;font-size:.82rem;color:#818cf8;
+  display:flex;align-items:center;gap:.6rem;margin-bottom:1.1rem;
+}
+.day-detail-box{
+  background:var(--card2);border:1px solid var(--border);border-radius:12px;
+  padding:1rem 1.1rem;margin-top:.9rem;
+}
+.day-detail-box h4{font-size:.85rem;font-weight:700;margin-bottom:.65rem;display:flex;align-items:center;gap:.4rem}
+.no-horario{text-align:center;padding:1rem;color:var(--muted);font-size:.82rem}
+
+/* RESPONSIVE */
+@media(max-width:520px){
+  .planos-grid{grid-template-columns:1fr}
+  .pgto-grid{grid-template-columns:repeat(2,1fr)}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid .span2{grid-column:span 1}
+  .hero h1{font-size:1.4rem}
+  .container{padding:1.25rem .85rem 5rem}
+  .steps-bar{padding:1rem .5rem}
+  .step-line{width:22px}
+}
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-logo">
+    <div class="icon"><i class="fa-solid fa-dumbbell"></i></div>
+    <span>FitPro</span>
+  </div>
+  <img id="trainerAvatar" src="" alt="Personal" class="hero-trainer"/>
+  <h1 id="trainerNome">Agende sua Aula</h1>
+  <p id="trainerEspec">Personal Trainer</p>
+  <div class="trainer-badges">
+    <span class="trainer-badge"><i class="fa-solid fa-star"></i> Personal Certificado</span>
+    <span class="trainer-badge"><i class="fa-solid fa-shield-heart"></i> Treino Personalizado</span>
+    <span class="trainer-badge"><i class="fa-solid fa-calendar-check"></i> Agendamento Online</span>
+  </div>
+</div>
+
+<!-- STEPS -->
+<div class="steps-bar" id="stepsBar">
+  <div class="step-item">
+    <div class="step-col"><div class="step-dot active" id="sd1">1</div><div class="step-label">Plano</div></div>
+    <div class="step-line" id="sl1"></div>
+  </div>
+  <div class="step-item">
+    <div class="step-col"><div class="step-dot" id="sd2">2</div><div class="step-label">Pagamento</div></div>
+    <div class="step-line" id="sl2"></div>
+  </div>
+  <div class="step-item">
+    <div class="step-col"><div class="step-dot" id="sd3">3</div><div class="step-label">Seus dados</div></div>
+    <div class="step-line" id="sl3"></div>
+  </div>
+  <div class="step-item">
+    <div class="step-col"><div class="step-dot" id="sd4">4</div><div class="step-label">Agenda</div></div>
+    <div class="step-line" id="sl4"></div>
+  </div>
+  <div class="step-item">
+    <div class="step-col"><div class="step-dot" id="sd5">5</div><div class="step-label">Confirmação</div></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- STEP 1: PLANO -->
+  <div class="section active" id="sec1">
+    <p class="section-title"><i class="fa-solid fa-star"></i> Escolha seu Plano</p>
+    <p class="section-sub">Selecione o plano que melhor se adapta à sua rotina e objetivos.</p>
+    <div class="planos-grid" id="planosGrid"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="goStep(2)" id="btnStep1">
+        Continuar <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: PAGAMENTO -->
+  <div class="section" id="sec2">
+    <p class="section-title"><i class="fa-solid fa-credit-card"></i> Forma de Pagamento</p>
+    <p class="section-sub">Como você prefere realizar o pagamento?</p>
+    <div class="pgto-grid">
+      <div class="pgto-card" onclick="selectPgto(this,'pix')">
+        <i class="fa-solid fa-qrcode pgto-icon" style="color:#10b981"></i>
+        <div class="pgto-nome">Pix</div>
+        <div class="pgto-desc">Instantâneo e sem taxas</div>
+      </div>
+      <div class="pgto-card" onclick="selectPgto(this,'dinheiro')">
+        <i class="fa-solid fa-money-bill-wave pgto-icon" style="color:#f59e0b"></i>
+        <div class="pgto-nome">Dinheiro</div>
+        <div class="pgto-desc">Pague na primeira aula</div>
+      </div>
+      <div class="pgto-card" onclick="selectPgto(this,'cartao')">
+        <i class="fa-solid fa-credit-card pgto-icon" style="color:#6366f1"></i>
+        <div class="pgto-nome">Cartão</div>
+        <div class="pgto-desc">Crédito ou débito</div>
+      </div>
+      <div class="pgto-card" onclick="selectPgto(this,'transferencia')">
+        <i class="fa-solid fa-building-columns pgto-icon" style="color:#ec4899"></i>
+        <div class="pgto-nome">Transferência</div>
+        <div class="pgto-desc">TED / DOC bancário</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goStep(1)"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      <button class="btn-primary" onclick="goStep(3)">Continuar <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- STEP 3: DADOS -->
+  <div class="section" id="sec3">
+    <p class="section-title"><i class="fa-solid fa-user"></i> Seus Dados</p>
+    <p class="section-sub">Precisamos de algumas informações para identificar você.</p>
+    <div class="form-grid">
+      <div class="form-group span2">
+        <label>Nome completo *</label>
+        <input id="alunoNome" type="text" placeholder="Seu nome completo"/>
+      </div>
+      <div class="form-group">
+        <label>WhatsApp *</label>
+        <input id="alunoWhats" type="tel" placeholder="(44) 99999-9999"/>
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input id="alunoEmail" type="email" placeholder="seu@email.com"/>
+      </div>
+      <div class="form-group">
+        <label>Data de nascimento</label>
+        <input id="alunoNasc" type="date"/>
+      </div>
+      <div class="form-group">
+        <label>Objetivo principal</label>
+        <select id="alunoObj">
+          <option value="">Selecione…</option>
+          <option value="Emagrecimento">Emagrecimento</option>
+          <option value="Ganho de massa">Ganho de massa</option>
+          <option value="Condicionamento">Condicionamento físico</option>
+          <option value="Saúde e qualidade de vida">Saúde e qualidade de vida</option>
+          <option value="Reabilitação">Reabilitação</option>
+          <option value="Performance">Performance esportiva</option>
+        </select>
+      </div>
+      <div class="form-group span2">
+        <label>Lesões / Restrições</label>
+        <textarea id="alunoLesoes" rows="2" placeholder="Informe se tiver alguma lesão ou restrição médica…"></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goStep(2)"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      <button class="btn-primary" onclick="goStep(4)">Continuar <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- STEP 4: AGENDA -->
+  <div class="section" id="sec4">
+    <p class="section-title"><i class="fa-solid fa-calendar-days"></i> Escolha o Dia e Horário</p>
+    <p class="section-sub">Veja os dias disponíveis e marque sua primeira aula.</p>
+
+    <div class="info-banner">
+      <i class="fa-solid fa-circle-info"></i>
+      <span>Dias com <strong style="color:#ef4444">vermelho</strong> já estão lotados. Clique em um dia disponível para ver os horários.</span>
+    </div>
+
+    <!-- Calendário -->
+    <div>
+      <div class="cal-header">
+        <button class="cal-nav" onclick="Calendario.prev()"><i class="fa-solid fa-chevron-left"></i></button>
+        <h3 id="calMesAno"></h3>
+        <button class="cal-nav" onclick="Calendario.next()"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="cal-weekdays">
+        <div class="cal-weekday">Dom</div><div class="cal-weekday">Seg</div>
+        <div class="cal-weekday">Ter</div><div class="cal-weekday">Qua</div>
+        <div class="cal-weekday">Qui</div><div class="cal-weekday">Sex</div>
+        <div class="cal-weekday">Sáb</div>
+      </div>
+      <div class="cal-days" id="calDays"></div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--card2);border:1.5px solid var(--border)"></div> Disponível</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:rgba(239,68,68,.2)"></div> Ocupado</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--accent)"></div> Selecionado</div>
+      </div>
+    </div>
+
+    <!-- Horários do dia -->
+    <div class="day-detail-box" id="dayDetailBox" style="display:none">
+      <h4><i class="fa-solid fa-clock" style="color:var(--accent)"></i> Horários disponíveis — <span id="dayDetailLabel"></span></h4>
+      <div class="horarios-grid" id="horariosGrid"></div>
+    </div>
+
+    <div class="btn-row" style="margin-top:1.5rem">
+      <button class="btn-secondary" onclick="goStep(3)"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      <button class="btn-primary" onclick="goStep(5)">Revisar pedido <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- STEP 5: CONFIRMAÇÃO -->
+  <div class="section" id="sec5">
+    <p class="section-title"><i class="fa-solid fa-clipboard-check"></i> Revisão do Agendamento</p>
+    <p class="section-sub">Confira os dados antes de confirmar.</p>
+    <div class="resumo-card" id="resumoCard"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goStep(4)"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      <button class="btn-primary" onclick="confirmarAgendamento()">
+        <i class="fa-solid fa-check"></i> Confirmar Agendamento
+      </button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- SUCCESS -->
+<div class="success-screen" id="successScreen">
+  <div class="container" style="max-width:540px">
+    <div class="confetti-row">🎉🏋️🎊</div>
+    <div class="success-icon"><i class="fa-solid fa-check"></i></div>
+    <h2>Aula agendada com sucesso!</h2>
+    <p>Seu agendamento foi registrado. Everton Diniz já foi notificado via WhatsApp e entrará em contato para confirmar os detalhes.</p>
+    <div class="wa-confirm-box" id="waMsgBox"></div>
+    <button class="btn-primary" style="margin:0 auto;max-width:280px" onclick="location.reload()">
+      <i class="fa-solid fa-plus"></i> Agendar outra aula
+    </button>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ════════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════════ */
+const State = {
+  step: 1,
+  planoId: null,
+  plano: null,
+  pgto: null,
+  diaSel: null,
+  horaSel: null,
+  aluno: {},
+};
+
+/* ════════════════════════════════════
+   DB — lê do localStorage do sistema
+════════════════════════════════════ */
+const DB = {
+  get(k) { try{ return JSON.parse(localStorage.getItem('fp_'+k)||'[]'); }catch{return [];} },
+  set(k,v){ localStorage.setItem('fp_'+k, JSON.stringify(v)); },
+  getConfig(){
+    try{
+      const cfg = JSON.parse(localStorage.getItem('fp_config')||'null')||defaultConfig();
+      if(cfg.nome==='Carlos Silva'||cfg.nome==='Personal Trainer'){
+        cfg.nome='Everton Diniz';
+        DB.set('config', cfg); // persiste
+      }
+      return cfg;
+    }catch{return defaultConfig();}
+  },
+  insert(k, item) {
+    const data = DB.get(k);
+    item.id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    item.createdAt = new Date().toISOString();
+    data.push(item);
+    DB.set(k, data);
+    return item;
+  }
+};
+function defaultConfig(){
+  return { nome:'Everton Diniz', telefone:'', email:'', especialidade:'Personal Trainer CREF' };
+}
+
+function fmtCurrency(v){ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v||0); }
+function fmtDate(s){ const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function avatarUrl(name){ return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name||'P')}&backgroundColor=10b981&fontFamily=Arial&fontSize=38&fontWeight=700`; }
+
+/* ════════════════════════════════════
+   INIT
+════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  const cfg = DB.getConfig();
+  document.getElementById('trainerNome').textContent = `Agendar com ${cfg.nome||'Everton Diniz'}`;
+  document.getElementById('trainerEspec').textContent = cfg.especialidade || 'Personal Trainer CREF';
+  document.getElementById('trainerAvatar').src = avatarUrl(cfg.nome||'Everton Diniz');
+  renderPlanos();
+  Calendario.init();
+});
+
+/* ════════════════════════════════════
+   TOAST
+════════════════════════════════════ */
+function toast(msg, type='success'){
+  const icons={success:'fa-circle-check ok',error:'fa-circle-xmark err',warn:'fa-triangle-exclamation warn'};
+  const el=document.createElement('div');
+  el.className=`toast ${type==='error'?'error':type==='warn'?'warn':''}`;
+  el.innerHTML=`<i class="fa-solid ${icons[type]||icons.success}"></i><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>{ el.style.animation='toastOut .3s ease forwards'; setTimeout(()=>el.remove(),300); }, 3000);
+}
+
+/* ════════════════════════════════════
+   STEPS
+════════════════════════════════════ */
+function goStep(n){
+  // Validações
+  if(n===2 && !State.planoId){ toast('Selecione um plano!','warn'); return; }
+  if(n===3 && !State.pgto){ toast('Selecione a forma de pagamento!','warn'); return; }
+  if(n===4){
+    const nome=document.getElementById('alunoNome').value.trim();
+    const whats=document.getElementById('alunoWhats').value.trim();
+    if(!nome||!whats){ toast('Nome e WhatsApp são obrigatórios!','warn'); return; }
+    State.aluno = {
+      nome, whats,
+      email: document.getElementById('alunoEmail').value.trim(),
+      nasc:  document.getElementById('alunoNasc').value,
+      obj:   document.getElementById('alunoObj').value,
+      lesoes:document.getElementById('alunoLesoes').value.trim(),
+    };
+  }
+  if(n===5){
+    if(!State.diaSel){ toast('Selecione um dia no calendário!','warn'); return; }
+    if(!State.horaSel){ toast('Selecione um horário!','warn'); return; }
+    renderResumo();
+  }
+
+  // Esconde atual, mostra novo
+  document.querySelector('.section.active')?.classList.remove('active');
+  document.getElementById(`sec${n}`)?.classList.add('active');
+  State.step=n;
+  updateSteps(n);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateSteps(n){
+  for(let i=1;i<=5;i++){
+    const dot=document.getElementById(`sd${i}`);
+    if(!dot) continue;
+    dot.classList.remove('active','done');
+    if(i<n){ dot.classList.add('done'); dot.innerHTML='<i class="fa-solid fa-check"></i>'; }
+    else if(i===n){ dot.classList.add('active'); dot.textContent=i; }
+    else { dot.textContent=i; }
+    if(i<5){
+      const line=document.getElementById(`sl${i}`);
+      if(line) line.classList.toggle('done', i<n);
+    }
+  }
+}
+
+/* ════════════════════════════════════
+   PLANOS
+════════════════════════════════════ */
+function renderPlanos(){
+  const planos = DB.get('planos').filter(p=>p.status==='ativo');
+  const grid = document.getElementById('planosGrid');
+  if(!planos.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--muted);font-size:.85rem">
+      <i class="fa-solid fa-circle-info" style="font-size:1.5rem;display:block;margin-bottom:.5rem"></i>
+      Nenhum plano disponível no momento.</div>`;
+    return;
+  }
+  grid.innerHTML = planos.map(p=>`
+    <div class="plano-card" id="pc_${p.id}" onclick="selectPlano('${p.id}')">
+      <div class="plano-check"><i class="fa-solid fa-check"></i></div>
+      <div class="plano-freq-big">${p.frequencia}x</div>
+      <div class="plano-nome">${p.nome}</div>
+      <div class="plano-desc-small">${p.descricao||'Plano de treino personalizado'}</div>
+      <div class="plano-preco">${fmtCurrency(p.valor)} <small>/mês</small></div>
+      <div class="plano-tags">
+        <span class="plano-tag"><i class="fa-solid fa-calendar-week"></i> ${p.frequencia}x/semana</span>
+        <span class="plano-tag"><i class="fa-solid fa-clock"></i> ${p.duracao} mês</span>
+        <span class="plano-tag capitalize">${p.tipo}</span>
+      </div>
+    </div>`).join('');
+}
+
+function selectPlano(id){
+  document.querySelectorAll('.plano-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById(`pc_${id}`)?.classList.add('selected');
+  State.planoId = id;
+  State.plano   = DB.get('planos').find(p=>p.id===id);
+}
+
+/* ════════════════════════════════════
+   PAGAMENTO
+════════════════════════════════════ */
+function selectPgto(el, tipo){
+  document.querySelectorAll('.pgto-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  State.pgto = tipo;
+}
+
+/* ════════════════════════════════════
+   CALENDÁRIO
+════════════════════════════════════ */
+const Calendario = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth(),
+  MESES: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+  HORARIOS_BASE: ['06:00','07:00','08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'],
+
+  init(){ Calendario.render(); },
+  prev(){ if(Calendario.month===0){Calendario.month=11;Calendario.year--;}else Calendario.month--; Calendario.render(); },
+  next(){ if(Calendario.month===11){Calendario.month=0;Calendario.year++;}else Calendario.month++; Calendario.render(); },
+
+  getAulasDoMes(){
+    const y=Calendario.year, m=Calendario.month;
+    const prefix=`${y}-${String(m+1).padStart(2,'0')}`;
+    return DB.get('aulas').filter(a=>a.data.startsWith(prefix));
+  },
+
+  getAulasDoDia(ds){
+    return DB.get('aulas').filter(a=>a.data===ds);
+  },
+
+  render(){
+    const y=Calendario.year, m=Calendario.month;
+    document.getElementById('calMesAno').textContent=`${Calendario.MESES[m]} ${y}`;
+    const firstDay=new Date(y,m,1).getDay();
+    const daysInMonth=new Date(y,m+1,0).getDate();
+    const todayStr=today();
+    const aulasMes=Calendario.getAulasDoMes();
+
+    // Conta aulas por dia
+    const aulasPorDia={};
+    aulasMes.forEach(a=>{ aulasPorDia[a.data]=(aulasPorDia[a.data]||0)+1; });
+
+    const grid=document.getElementById('calDays');
+    grid.innerHTML='';
+
+    // Células vazias antes do primeiro dia
+    for(let i=0;i<firstDay;i++){
+      const el=document.createElement('div');
+      el.className='cal-day empty'; grid.appendChild(el);
+    }
+
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const el=document.createElement('button');
+      el.textContent=d;
+      el.className='cal-day';
+
+      const qtd=aulasPorDia[ds]||0;
+      const isPast=ds<todayStr;
+      const isToday=ds===todayStr;
+      const isBusy=qtd>=Calendario.HORARIOS_BASE.length;
+      const isSelected=ds===State.diaSel;
+
+      if(isPast) el.className+=' past';
+      else if(isBusy) el.className+=' busy';
+      else el.className+=' available';
+      if(isToday) el.className+=' today-marker';
+      if(isSelected) el.className+=' selected-day';
+
+      if(qtd>0 && !isBusy && !isPast){
+        const dot=document.createElement('div'); dot.className='cal-busy-dot';
+        el.appendChild(dot);
+      }
+
+      if(!isPast){
+        el.onclick=()=>Calendario.selectDay(ds);
+      }
+      grid.appendChild(el);
+    }
+
+    // Se dia selecionado ainda no mês, mostra horários
+    if(State.diaSel && State.diaSel.startsWith(`${y}-${String(m+1).padStart(2,'0')}`)){
+      Calendario.showHorarios(State.diaSel);
+    }
+  },
+
+  selectDay(ds){
+    State.diaSel=ds; State.horaSel=null;
+    // Re-renderiza para highlight
+    Calendario.render();
+    Calendario.showHorarios(ds);
+    document.getElementById('dayDetailBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+  },
+
+  showHorarios(ds){
+    const aulasDia=Calendario.getAulasDoDia(ds);
+    const ocupados=aulasDia.map(a=>a.hora);
+    const box=document.getElementById('dayDetailBox');
+    const label=document.getElementById('dayDetailLabel');
+    const grid=document.getElementById('horariosGrid');
+
+    label.textContent=fmtDate(ds);
+    box.style.display='block';
+
+    const livres=Calendario.HORARIOS_BASE.filter(h=>!ocupados.includes(h));
+    if(!livres.length){
+      grid.innerHTML=`<div class="no-horario"><i class="fa-solid fa-calendar-xmark"></i> Todos os horários deste dia estão ocupados.</div>`;
+      return;
+    }
+
+    grid.innerHTML = Calendario.HORARIOS_BASE.map(h=>{
+      const ocup=ocupados.includes(h);
+      const sel=h===State.horaSel;
+      return `<button class="hora-btn ${ocup?'occupied':''} ${sel?'selected-hora':''}"
+        onclick="${ocup?'void(0)':''}" ${ocup?'disabled':''}
+        ${!ocup?`onclick="Calendario.selectHora('${h}')"`:''}>
+        <i class="fa-solid fa-clock" style="font-size:.72rem;margin-right:.2rem"></i>${h}
+      </button>`;
+    }).join('');
+
+    // Rebind onclick sem conflito
+    if(livres.length){
+      box.querySelectorAll('.hora-btn:not(.occupied)').forEach(btn=>{
+        const hora=btn.textContent.trim().replace(/[^\d:]/g,'');
+        btn.onclick=()=>Calendario.selectHora(hora);
+      });
+    }
+  },
+
+  selectHora(h){
+    State.horaSel=h;
+    document.querySelectorAll('.hora-btn').forEach(b=>{
+      b.classList.toggle('selected-hora', b.textContent.trim().includes(h));
+    });
+    toast(`Horário ${h} selecionado! ✅`);
+  },
+};
+
+/* ════════════════════════════════════
+   RESUMO
+════════════════════════════════════ */
+function renderResumo(){
+  const pgtoLabel={pix:'Pix',dinheiro:'Dinheiro',cartao:'Cartão',transferencia:'Transferência'};
+  const pgtoIcon={pix:'fa-qrcode',dinheiro:'fa-money-bill',cartao:'fa-credit-card',transferencia:'fa-building-columns'};
+  const card=document.getElementById('resumoCard');
+  card.innerHTML=`
+    <div class="resumo-row">
+      <span class="resumo-label"><i class="fa-solid fa-user"></i> Aluno</span>
+      <span class="resumo-val">${State.aluno.nome}</span>
+    </div>
+    <div class="resumo-row">
+      <span class="resumo-label"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span>
+      <span class="resumo-val">${State.aluno.whats}</span>
+    </div>
+    <div class="resumo-row">
+      <span class="resumo-label"><i class="fa-solid fa-star"></i> Plano</span>
+      <span class="resumo-val">${State.plano?.nome||'—'}</span>
+    </div>
+    <div class="resumo-row">
+      <span class="resumo-label"><i class="fa-solid fa-calendar"></i> Data</span>
+      <span class="resumo-val">${fmtDate(State.diaSel)}</span>
+    </div>
+    <div class="resumo-row">
+      <span class="resumo-label"><i class="fa-solid fa-clock"></i> Horário</span>
+      <span class="resumo-val">${State.horaSel}</span>
+    </div>
+    <div class="resumo-row">
+      <span class="resumo-label"><i class="fa-solid ${pgtoIcon[State.pgto]||'fa-credit-card'}"></i> Pagamento</span>
+      <span class="resumo-val">${pgtoLabel[State.pgto]||State.pgto}</span>
+    </div>
+    ${State.aluno.obj?`<div class="resumo-row">
+      <span class="resumo-label"><i class="fa-solid fa-bullseye"></i> Objetivo</span>
+      <span class="resumo-val">${State.aluno.obj}</span>
+    </div>`:''}
+    <div class="resumo-total">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="resumo-label" style="color:var(--accent)"><i class="fa-solid fa-tag"></i> Valor do plano</span>
+        <span class="resumo-val" style="font-size:1.1rem;color:var(--accent)">${fmtCurrency(State.plano?.valor)}</span>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════
+   CONFIRMAR AGENDAMENTO
+════════════════════════════════════ */
+function confirmarAgendamento(){
+  const cfg = DB.getConfig();
+
+  // 1. Cadastra aluno (ou usa existente)
+  const alunos = DB.get('alunos');
+  let aluno = alunos.find(a=>a.whatsapp===State.aluno.whats||a.nome===State.aluno.nome);
+  if(!aluno){
+    aluno = DB.insert('alunos',{
+      nome:    State.aluno.nome,
+      whatsapp:State.aluno.whats,
+      email:   State.aluno.email,
+      nasc:    State.aluno.nasc,
+      objetivo:State.aluno.obj,
+      lesoes:  State.aluno.lesoes,
+      telefone:State.aluno.whats,
+      plano:   State.planoId,
+      status:  'ativo',
+      nivel:   'Iniciante',
+    });
+  }
+
+  // 2. Cria aula
+  DB.insert('aulas',{
+    alunoId: aluno.id,
+    data:    State.diaSel,
+    hora:    State.horaSel,
+    duracao: 60,
+    local:   'Academia',
+    endereco:'',
+    status:  'confirmado',
+    obs:     `Agendado pelo portal. Objetivo: ${State.aluno.obj||'N/A'}. Pagamento: ${State.pgto}.`,
+  });
+
+  // 3. Cria pagamento pendente
+  const mes=State.diaSel.slice(0,7);
+  const venc=`${mes}-10`;
+  DB.insert('pagamentos',{
+    alunoId:  aluno.id,
+    planoId:  State.planoId,
+    valor:    State.plano?.valor||0,
+    vencimento:venc,
+    dataPagamento:null,
+    forma:    State.pgto,
+    status:   'pendente',
+    referencia:mes,
+    obs:      'Gerado via portal de agendamento',
+  });
+
+  // 4. Monta mensagem WhatsApp para o personal
+  const nomeAluno = State.aluno.nome.split(' ')[0];
+  const waMsgPersonal = `🏋️ *Novo Agendamento — FitPro*\n\n`
+    + `Olá *${cfg.nome||'Everton Diniz'}*! Você tem um novo agendamento:\n\n`
+    + `👤 *Aluno:* ${State.aluno.nome}\n`
+    + `📱 *WhatsApp:* ${State.aluno.whats}\n`
+    + `📋 *Plano:* ${State.plano?.nome}\n`
+    + `📅 *Data:* ${fmtDate(State.diaSel)} às ${State.horaSel}\n`
+    + `💳 *Pagamento:* ${State.pgto}\n`
+    + `🎯 *Objetivo:* ${State.aluno.obj||'Não informado'}\n`
+    + (State.aluno.lesoes?`⚠️ *Restrições:* ${State.aluno.lesoes}\n`:'')
+    + `\n_Agendado via portal FitPro_`;
+
+  // 5. Salva no histórico WA
+  const hist = DB.get('waHistory');
+  hist.unshift({
+    id: Date.now().toString(36),
+    tipo:'agendamento',
+    destinatario: cfg.nome||'Everton Diniz',
+    msg: waMsgPersonal,
+    enviadoEm: new Date().toISOString(),
+  });
+  DB.set('waHistory', hist.slice(0,50));
+
+  // 6. Exibe tela de sucesso
+  document.getElementById('stepsBar').style.display='none';
+  document.querySelector('.container').style.display='none';
+  const ss = document.getElementById('successScreen');
+  ss.classList.add('show');
+
+  // Exibe mensagem WA simulada
+  document.getElementById('waMsgBox').innerHTML =
+    waMsgPersonal.replace(/\*(.*?)\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>')
+    + `<div class="wa-time">✓✓ ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>`;
+
+  // Link direto para o WhatsApp do personal (se tiver telefone cadastrado)
+  if(cfg.telefone){
+    const tel=cfg.telefone.replace(/\D/g,'');
+    const url=`https://wa.me/55${tel}?text=${encodeURIComponent(waMsgPersonal)}`;
+    setTimeout(()=>{
+      const btn=document.createElement('a');
+      btn.href=url; btn.target='_blank';
+      btn.className='btn-primary';
+      btn.style.cssText='display:inline-flex;margin:.75rem auto 0;max-width:280px;text-decoration:none;justify-content:center';
+      btn.innerHTML='<i class="fa-brands fa-whatsapp"></i> Abrir WhatsApp';
+      document.querySelector('.success-screen .container').appendChild(btn);
+    },100);
+  }
+}
+</script>
+</body>
+</html>
